@@ -1,6 +1,10 @@
 # Arquivo de variáveis de ambiente
 .env
 
+# Folders
+teste_json/
+teste_json_sem_stories/
+
 # Arquivos Python
 __pycache__/
 *.py[cod]
