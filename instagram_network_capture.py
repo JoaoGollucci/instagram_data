@@ -1,8 +1,10 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
 import json
 import time
 import re
@@ -178,7 +180,9 @@ def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay
                 driver.quit()
                 time.sleep(5)
             
-            driver = webdriver.Chrome(options=chrome_options)
+            # Usar webdriver-manager para baixar automaticamente o ChromeDriver correto
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
             
             print(f"Login... (tentativa {tentativa_login}/{max_tentativas_login})")
             
