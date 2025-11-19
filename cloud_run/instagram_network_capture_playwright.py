@@ -98,26 +98,19 @@ def capturar_stories_usuario(page, username, delay=3, bucket_name=None, gcs_fold
     url = f"https://www.instagram.com/stories/{username}/"
     
     try:
-        # Capturar requisições de rede
-        requests_capturados = []
+        page.goto(url, wait_until='networkidle')
         
-        def handle_response(response):
-            if 'xdt_api__v1__feed__reels_media' in response.url:
-                requests_capturados.append(response.url)
-        
-        page.on("response", handle_response)
-        
-        page.goto(url)
+        # Aguardar delay para carregar stories
         page.wait_for_timeout(delay * 1000)
         
-        # Verificar se encontrou o endpoint
-        if requests_capturados:
-            # Aguardar mais um pouco para garantir carregamento completo
-            page.wait_for_timeout(delay * 1000)
-            
-            # Capturar HTML
-            html_content = page.content()
-            
+        # Aguardar mais um pouco para garantir carregamento completo
+        page.wait_for_timeout(delay * 1000)
+        
+        # Capturar HTML
+        html_content = page.content()
+        
+        # Verificar se o endpoint foi chamado (checando se há dados no HTML)
+        if 'xdt_api__v1__feed__reels_media' in html_content:
             # Extrair JSON
             json_data = extrair_json_stories(html_content)
             
@@ -139,7 +132,7 @@ def capturar_stories_usuario(page, username, delay=3, bucket_name=None, gcs_fold
                 page.wait_for_timeout(delay * 1000)
                 return json_data
             else:
-                print(f"  ✗ {username} - JSON não encontrado")
+                print(f"  ✗ {username} - JSON não encontrado no HTML")
                 return None
         else:
             print(f"  ✗ {username} - Endpoint não encontrado")
@@ -147,9 +140,11 @@ def capturar_stories_usuario(page, username, delay=3, bucket_name=None, gcs_fold
         
     except Exception as e:
         print(f"  ✗ {username} - Erro: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
-def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay=3, 
+def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay=5, 
                                max_tentativas_login=3, bucket_name=None, gcs_folder="json"):
     """Captura stories de múltiplos usuários e salva no GCS usando Playwright"""
     
