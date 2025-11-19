@@ -200,7 +200,7 @@ def main():
     
     # Capturar dados dos stories
     resultados = capturar_multiplas_paginas(
-        lista_usuarios=lista_usernames,
+        lista_usuarios=['sensacional', 'motivei'],
         usuario_login=INSTAGRAM_LOGIN,
         senha_login=INSTAGRAM_SENHA,
         delay=DELAY,
@@ -213,28 +213,28 @@ def main():
     print(f"✓ Captura concluída: {len(resultados)}/{len(lista_usernames)} perfis")
     print()
     
-    # Processar JSONs e gerar CSV
-    print("📊 Gerando CSV consolidado...")
-    print("-" * 60)
-    print()
+    # # Processar JSONs e gerar CSV
+    # print("📊 Gerando CSV consolidado...")
+    # print("-" * 60)
+    # print()
     
-    resultado_csv = processar_jsons_e_gerar_csv(JSON_FOLDER, CSV_FOLDER)
+    # resultado_csv = processar_jsons_e_gerar_csv(JSON_FOLDER, CSV_FOLDER)
     
-    print()
-    print("=" * 60)
-    if resultado_csv.get("status") == "success":
-        print("✅ TESTE CONCLUÍDO COM SUCESSO")
-        print()
-        print(f"📊 Resultados:")
-        print(f"   - Perfis processados: {len(resultados)}/{len(lista_usernames)}")
-        print(f"   - Usernames únicos: {resultado_csv.get('total_usernames', 0)}")
-        print(f"   - Total de linhas CSV: {resultado_csv.get('total_rows', 0)}")
-        print(f"   - Arquivo CSV: {resultado_csv.get('csv_file', 'N/A')}")
-    else:
-        print("❌ TESTE CONCLUÍDO COM ERROS")
-        print()
-        print(f"   Erro: {resultado_csv.get('message', 'Erro desconhecido')}")
-    print("=" * 60)
+    # print()
+    # print("=" * 60)
+    # if resultado_csv.get("status") == "success":
+    #     print("✅ TESTE CONCLUÍDO COM SUCESSO")
+    #     print()
+    #     print(f"📊 Resultados:")
+    #     print(f"   - Perfis processados: {len(resultados)}/{len(lista_usernames)}")
+    #     print(f"   - Usernames únicos: {resultado_csv.get('total_usernames', 0)}")
+    #     print(f"   - Total de linhas CSV: {resultado_csv.get('total_rows', 0)}")
+    #     print(f"   - Arquivo CSV: {resultado_csv.get('csv_file', 'N/A')}")
+    # else:
+    #     print("❌ TESTE CONCLUÍDO COM ERROS")
+    #     print()
+    #     print(f"   Erro: {resultado_csv.get('message', 'Erro desconhecido')}")
+    # print("=" * 60)
 
 if __name__ == '__main__':
     try:
