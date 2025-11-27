@@ -8,6 +8,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 import json
 import time
 import re
+import os
 
 def extrair_json_stories(html_content):
     """Extrai o JSON com dados dos stories do HTML"""
@@ -82,7 +83,7 @@ def fazer_login_instagram(driver, usuario, senha):
         print(f"Erro no login: {e}")
         return False
 
-def capturar_stories_usuario(driver, username, delay=3):
+def capturar_stories_usuario(driver, username, delay=3, output_folder="."):
     """Captura o retorno do endpoint de stories para um usuário específico"""
     url = f"https://www.instagram.com/stories/{username}/"
     
@@ -124,8 +125,8 @@ def capturar_stories_usuario(driver, username, delay=3):
                             json_data = extrair_json_stories(body)
                             
                             if json_data:
-                                # Salvar apenas o JSON
-                                filename_json = f"{username}_stories.json"
+                                # Salvar apenas o JSON na pasta especificada
+                                filename_json = os.path.join(output_folder, f"{username}_stories.json")
                                 with open(filename_json, 'w', encoding='utf-8') as f:
                                     json.dump(json_data, f, indent=2, ensure_ascii=False)
                                 
@@ -151,7 +152,7 @@ def capturar_stories_usuario(driver, username, delay=3):
         return False
 
 
-def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay=3, max_tentativas_login=3):
+def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay=3, max_tentativas_login=3, output_folder="."):
     """Captura stories de múltiplos usuários"""
     
     # Configurar Chrome
@@ -204,7 +205,7 @@ def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay
         sucesso = 0
         
         for username in lista_usuarios:
-            if capturar_stories_usuario(driver, username, delay):
+            if capturar_stories_usuario(driver, username, delay, output_folder):
                 sucesso += 1
         
         # Resumo
