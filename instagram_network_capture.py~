@@ -60,7 +60,7 @@ def fazer_login_instagram(driver, usuario, senha):
         # Clicar em login
         login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
         login_button.click()
-        time.sleep(60) #aumentado para poder pegar o token no email
+        time.sleep(5)
         
         # Fechar popups
         try:
@@ -196,6 +196,7 @@ def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay
                     print(f"Aguardando 10s para nova tentativa...\n")
                     time.sleep(10)
 
+        time.sleep(60)
         
         if not login_sucesso:
             print("✗ Falha após todas as tentativas de login")
