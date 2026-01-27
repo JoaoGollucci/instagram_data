@@ -17,6 +17,9 @@ def extrair_json_stories(html_content):
         pattern = r'<script type="application/json"[^>]*data-sjs[^>]*>(.*?)</script>'
         matches = re.findall(pattern, html_content, re.DOTALL)
         
+        if not matches:
+            return None
+        
         for script_content in matches:
             if 'xdt_api__v1__feed__reels_media' in script_content:
                 # Parse o JSON
@@ -24,14 +27,12 @@ def extrair_json_stories(html_content):
                 
                 # Extrair apenas a lista "require"
                 if 'require' in data:
-                    # Salvar o require completo
                     return {"require": data['require']}
         
         return None
-    except Exception as e:
-        print(f"Erro ao extrair JSON: {e}")
-        import traceback
-        traceback.print_exc()
+    except json.JSONDecodeError:
+        return None
+    except Exception:
         return None
 
 def fazer_login_instagram(driver, usuario, senha):
@@ -50,16 +51,86 @@ def fazer_login_instagram(driver, usuario, senha):
         except:
             pass
         
-        # Preencher usuário e senha
-        username_input = wait.until(EC.presence_of_element_located((By.NAME, "username")))
+        # Preencher usuário - tenta padrão original, depois padrão novo (teste A/B)
+        username_input = None
+        password_input = None
+        login_pattern = None  # Para identificar qual padrão foi usado
+        
+        # Padrão 1: name="username" (original)
+        try:
+            username_input = wait.until(EC.presence_of_element_located((By.NAME, "username")))
+            login_pattern = "original"
+            print("  → Detectado padrão de login: ORIGINAL (username/password)")
+        except:
+            pass
+        
+        # Padrão 2: name="email" (novo teste A/B do Instagram)
+        if username_input is None:
+            try:
+                username_input = wait.until(EC.presence_of_element_located((By.NAME, "email")))
+                login_pattern = "novo_ab"
+                print("  → Detectado padrão de login: NOVO A/B (email/pass)")
+            except:
+                pass
+        
+        # Fallback: busca por atributos alternativos
+        if username_input is None:
+            try:
+                # Tenta encontrar por autocomplete ou tipo de input
+                username_input = wait.until(EC.presence_of_element_located(
+                    (By.XPATH, "//input[@autocomplete='username' or @autocomplete='username webauthn' or @type='text']")
+                ))
+                login_pattern = "fallback"
+                print("  → Detectado padrão de login: FALLBACK (xpath genérico)")
+            except Exception:
+                print("  ✗ Campo de usuário não encontrado na página")
+                return False
+        
         username_input.send_keys(usuario)
         
-        password_input = driver.find_element(By.NAME, "password")
+        # Preencher senha baseado no padrão detectado
+        if login_pattern == "original":
+            password_input = driver.find_element(By.NAME, "password")
+        elif login_pattern == "novo_ab":
+            password_input = driver.find_element(By.NAME, "pass")
+        else:
+            # Fallback: busca por tipo password
+            try:
+                password_input = driver.find_element(By.XPATH, "//input[@type='password']")
+            except:
+                password_input = driver.find_element(By.NAME, "password")
+        
         password_input.send_keys(senha)
         
-        # Clicar em login
-        login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
-        login_button.click()
+        # Clicar em login - tenta múltiplas formas
+        login_button = None
+        
+        # Método 1: botão submit (original)
+        try:
+            login_button = driver.find_element(By.XPATH, "//button[@type='submit']")
+        except:
+            pass
+        
+        # Método 2: busca pelo texto "Entrar" ou "Log in" (novo padrão A/B)
+        if login_button is None:
+            try:
+                login_button = driver.find_element(By.XPATH, "//div[contains(@role, 'none')]//span[contains(text(), 'Entrar') or contains(text(), 'Log in')]/ancestor::div[@role='none'][1]")
+            except:
+                pass
+        
+        # Método 3: busca por span com texto de login
+        if login_button is None:
+            try:
+                login_button = driver.find_element(By.XPATH, "//span[contains(text(), 'Entrar') or contains(text(), 'Log in')]")
+            except:
+                pass
+        
+        if login_button:
+            login_button.click()
+        else:
+            print("  ✗ Não foi possível encontrar o botão de login")
+            return False
+            
         time.sleep(60) #aumentado para poder pegar o token no email
         
         # Fechar popups
@@ -80,7 +151,8 @@ def fazer_login_instagram(driver, usuario, senha):
         return "login" not in driver.current_url
             
     except Exception as e:
-        print(f"Erro no login: {e}")
+        erro_msg = str(e).split('\n')[0][:80]  # Primeira linha, max 80 chars
+        print(f"  ✗ Falha no login: {erro_msg}")
         return False
 
 def capturar_stories_usuario(driver, username, delay=3, output_folder="."):
@@ -134,21 +206,21 @@ def capturar_stories_usuario(driver, username, delay=3, output_folder="."):
                                 time.sleep(delay)
                                 return True
                             else:
-                                print(f"  ✗ {username} - JSON não encontrado")
+                                print(f"  ✗ {username} - Dados dos stories não encontrados")
                                 return False
                             
-                        except Exception as e:
-                            print(f"  ✗ {username} - Erro: {e}")
+                        except Exception:
+                            print(f"  ✗ {username} - Erro ao processar resposta")
                             return False
             
             except:
                 continue
         
-        print(f"  ✗ {username} - Endpoint não encontrado")
+        print(f"  ✗ {username} - Stories não disponíveis ou perfil privado")
         return False
         
-    except Exception as e:
-        print(f"  ✗ {username} - Erro: {e}")
+    except Exception:
+        print(f"  ✗ {username} - Erro ao acessar página")
         return False
 
 
@@ -191,9 +263,8 @@ def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay
                 print("✓ Login realizado\n")
                 login_sucesso = True
             else:
-                print(f"✗ Erro no login (tentativa {tentativa_login})")
                 if tentativa_login < max_tentativas_login:
-                    print(f"Aguardando 10s para nova tentativa...\n")
+                    print(f"  Aguardando 10s para nova tentativa...\n")
                     time.sleep(10)
 
         
@@ -212,12 +283,20 @@ def capturar_multiplas_paginas(lista_usuarios, usuario_login, senha_login, delay
         # Resumo
         print(f"\nConcluído: {sucesso}/{len(lista_usuarios)}")
         
+    except KeyboardInterrupt:
+        print("\n\n⚠ Execução interrompida pelo usuário")
+        
     except Exception as e:
-        print(f"✗ Erro: {e}")
+        erro_tipo = type(e).__name__
+        erro_msg = str(e).split('\n')[0][:100] if str(e) else "Erro desconhecido"
+        print(f"\n✗ Erro inesperado ({erro_tipo}): {erro_msg}")
         
     finally:
         if driver:
-            driver.quit()
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
 
 if __name__ == "__main__":
