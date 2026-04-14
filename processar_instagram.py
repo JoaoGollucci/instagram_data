@@ -24,6 +24,7 @@ BUCKET_NAME = os.getenv('GCS_BUCKET_NAME', 'projeto-meli-teste')
 EXCEL_FILE = 'Perfis testes - Novembro.xlsx'
 JSON_FOLDER = 'teste_json'
 OUTPUT_FOLDER = 'instagram'
+MANTER_ARQUIVOS_BRUTOS = os.getenv('MANTER_ARQUIVOS_BRUTOS', 'false').lower() == 'true'
 
 def tratar_link_insta(link):
     """Extrai o username do link do Instagram"""
@@ -109,7 +110,8 @@ def main():
     username,
     replace(split(split(unnest(item.story_link_stickers).story_link.url, 'u=')[2], '%2F')[3], 'www.', '') AS story_link_url
     FROM pt1
-    )
+    ),
+    p3 as (
     select
     username,
     case
@@ -133,6 +135,9 @@ def main():
     else null end as origin,
     current_date as date
     from pt2
+    )
+    select distinct username, origin, date from p3
+    where origin is not null
     ''', [path]).df()
     
     csv_filename = f'output_final_{hoje}.csv'
@@ -151,11 +156,14 @@ def main():
         print(f"✓ CSV local removido")
     print()
     
-    # 7. Limpar pasta teste_json
-    print("🧹 Limpando pasta teste_json...")
-    if os.path.exists(JSON_FOLDER):
-        shutil.rmtree(JSON_FOLDER)
-        print(f"✓ Pasta {JSON_FOLDER} limpa")
+    # 7. Limpar pasta teste_json (opcional via variável de ambiente)
+    if MANTER_ARQUIVOS_BRUTOS:
+        print(f"📁 Arquivos brutos mantidos em: {JSON_FOLDER}/")
+    else:
+        print("🧹 Limpando pasta teste_json...")
+        if os.path.exists(JSON_FOLDER):
+            shutil.rmtree(JSON_FOLDER)
+            print(f"✓ Pasta {JSON_FOLDER} limpa")
     print()
     
     print("=" * 60)
