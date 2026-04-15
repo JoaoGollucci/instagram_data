@@ -5,6 +5,8 @@
 teste_json/
 teste_json_sem_stories/
 todo.mkd
+chrome_profile/
+cookies_instagram.json
 
 # Arquivos Python
 __pycache__/
